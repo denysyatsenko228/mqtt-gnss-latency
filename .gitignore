@@ -1,0 +1,47 @@
+# ---- Python / local environment ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+
+# ---- macOS / IDE ----
+.DS_Store
+._*
+__MACOSX/
+.idea/
+.vscode/
+
+# ---- Local configuration and credentials ----
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+
+# ---- Experimental output (not source code) ----
+*.csv
+*.log
+*.sqlite3
+*.db
+*.bin
+/tools/payloads/
+/nmea_log.txt
+/gps_log.txt
+/latency_chart.png
+/fig_latency_avg.png
+
+# ---- Unrelated legacy experiments and web app ----
+/https_gnss/
+/gpslab/
+/measure.py
+/measure_https.py
+/run_https_master.py
+/run_https_slave.py
