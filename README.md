@@ -75,3 +75,100 @@ Each command produces a CSV file with columns `Method`, `Time_s`, and `Time_ms`.
 - A CSV contains successful RTT samples only; it does not record the number or causes of unsuccessful requests. Benchmark console logs provide per-format error counts.
 - The synthetic IQ generator (`tools/bladerf_gen.py`) produces simulated SC16 Q11 samples and **does not read IQ samples from physical SDR hardware**.
 - Experimental CSV datasets, credentials, and generated binary payloads are intentionally excluded by `.gitignore`.
+
+
+## Statistical Analysis and Model Reproducibility
+
+The repository also includes Python scripts for statistical analysis of measured RTT values and simulation of the proposed three-component stochastic latency model.
+
+Both scripts are available in the [`analysis/`](analysis/) directory.
+
+### Experimental RTT Analysis
+
+**Source code:** [`analysis/delay_analysis.py`](analysis/delay_analysis.py)
+
+This script analyzes experimental RTT measurements collected by the MQTT testbed. It generates:
+
+- RTT distribution histograms.
+- RTT time-series plots for the first 500 measurements.
+- Autocorrelation function (ACF) plots.
+- Q-Q plots of logarithmically transformed RTT values for evaluating the shifted lognormal approximation.
+
+These analyses correspond to the methods used in Section 4 of the accompanying research paper.
+
+**Usage (from the repository root):**
+
+```bash
+python analysis/delay_analysis.py raw_mqtt_10k.csv msgpack
+```
+
+The CSV file must be available locally and contain the columns `Method`, `Time_s`, and `Time_ms`. The second argument selects the serialization format (`json`, `nmea`, `protobuf`, `msgpack`, or `toon`).
+
+The main analysis parameters are defined at the beginning of the script:
+
+| Parameter | Default | Description |
+|---|---|---|
+| `UPPER_LIMIT` | 50 ms | Upper cutoff for histogram and Q-Q analysis |
+| `HIST_BINS` | 300 | Number of histogram bins |
+| `MAX_INDEX` | 500 | Number of measurements displayed in the time-series plot |
+| `MAX_LAG` | 10 | Maximum autocorrelation lag |
+| `SHIFT` | 4.5 ms | Constant subtracted before logarithmic transformation |
+
+The ACF and time-series plots use the original selected RTT series. The histogram and Q-Q analysis exclude values at or above `UPPER_LIMIT`. The Q-Q analysis additionally excludes values at or below `SHIFT`, for which the shifted logarithm is undefined.
+
+These exclusions apply only to the corresponding analyses; they do not modify the original CSV.
+
+### Synthetic Delay Model
+
+**Source code:** [`analysis/synthetic_analysis.py`](analysis/synthetic_analysis.py)
+
+This script generates synthetic latency samples using the proposed three-component stochastic model:
+
+```text
+T = Tmin + Lognormal(mu, sigma) + Gaussian(0, sigma_n)
+```
+
+The simulation parameters are:
+
+| Parameter | Value |
+|---|---|
+| Sample size | 100,000 |
+| Random seed | 42 |
+| Deterministic shift (Tmin) | 5 ms |
+| Lognormal mu | 1 |
+| Lognormal sigma | 1.1 |
+| Gaussian noise mean | 0 ms |
+| Gaussian noise sigma | 0.4 ms |
+
+**Usage (from the repository root):**
+
+```bash
+python analysis/synthetic_analysis.py
+```
+
+The script generates:
+
+- A histogram of synthetic latency values (Fig. 10 in the accompanying paper).
+- Four Q-Q plots using assumed shifts of 4.0, 4.5, 5.0, and 5.5 ms (Fig. 11).
+
+The fixed random seed ensures that the same synthetic dataset can be generated repeatedly.
+
+These simulations illustrate the statistical behavior of the proposed model. They do not, by themselves, establish its accuracy against independently measured network delays.
+
+### Dependencies and Experimental Data
+
+Both scripts use NumPy, Matplotlib, and Statsmodels. These packages are already included in the root [`requirements.txt`](requirements.txt).
+
+Install dependencies using:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+The original experimental CSV datasets are intentionally excluded from the repository through `.gitignore`.
+
+Researchers can independently repeat the MQTT experiments using the provided measurement scripts, generate new CSV datasets, and analyze them with `analysis/delay_analysis.py`.
+
+Experimental RTT results may differ depending on the hardware, Linux kernel configuration, network conditions, and system load.
+
+The synthetic model experiments are fully reproducible without external CSV files.
